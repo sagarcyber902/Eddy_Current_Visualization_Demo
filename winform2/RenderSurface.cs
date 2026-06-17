@@ -104,23 +104,16 @@ namespace winform2
 
         private void DrawGraph(Graphics g)
         {
-
-
             float left = 40f;
             float bottom = Height - 20f;
             float right = Width - 10f;
             float top = 10f;
 
-            // ✅ Axis pen
             using var axisPen = new Pen(Color.Gray, 1);
 
-            // 🔥 X-axis (time)
             g.DrawLine(axisPen, left, bottom, right, bottom);
-
-            // 🔥 Y-axis (magnitude)
             g.DrawLine(axisPen, left, bottom, left, top);
 
-            // Optional: grid lines (nice improvement)
             using var gridPen = new Pen(Color.FromArgb(40, 255, 255, 255));
 
             for (int i = 1; i <= 4; i++)
@@ -128,9 +121,10 @@ namespace winform2
                 float y = bottom - i * (bottom - top) / 5;
                 g.DrawLine(gridPen, left, y, right, y);
             }
-            if (count < 2) return;
-            float step = (right - left) / BufferSize;
 
+            if (count < 2) return;
+
+            float step = (right - left) / BufferSize;
             PointF prev = default;
 
             for (int i = 0; i < count; i++)
@@ -149,5 +143,6 @@ namespace winform2
                 prev = cur;
             }
         }
+
     }
 }

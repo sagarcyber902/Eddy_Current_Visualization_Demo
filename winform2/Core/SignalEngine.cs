@@ -14,7 +14,7 @@ namespace winform2.Core
         private readonly SignalGenerator generator = new();
         private readonly BucketProcessor bucket = new();
 
-        private const double SampleRate = 500; // Hz
+        private const double SampleRate = 1000; // Hz
         
 
         public bool IsRunning { get; set; }

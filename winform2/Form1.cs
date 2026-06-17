@@ -1,6 +1,7 @@
-
 using winform2.Core;
 using winform2.Model;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace winform2
 {
@@ -10,11 +11,13 @@ namespace winform2
         private RenderSurface graphSurface;
         private SignalController controller = new();
 
+        private Stopwatch renderTimer = Stopwatch.StartNew();
+        private const int TargetFrameMs = 16;
+
         public Form1()
         {
             InitializeComponent();
 
-            // UI setup
             impedanceSurface = new RenderSurface
             {
                 Width = 303,
@@ -35,11 +38,12 @@ namespace winform2
             Controls.Add(impedanceSurface);
             Controls.Add(graphSurface);
 
-            // 🔥 UI ONLY subscribes
+            // ✅ Real-time graph
             controller.OnSample += OnSample;
+
+            // ✅ Bucket for impedance
             controller.OnBucket += OnBucket;
 
-            // Buttons → controller only
             btnStart.Click += (s, e) =>
             {
                 graphSurface.ClearAll();
@@ -47,10 +51,7 @@ namespace winform2
                 controller.Start();
             };
 
-            btnPause.Click += (s, e) =>
-            {
-                controller.Pause();
-            };
+            btnPause.Click += (s, e) => controller.Pause();
 
             btnClear.Click += (s, e) =>
             {
@@ -58,22 +59,18 @@ namespace winform2
                 graphSurface.ClearAll();
                 impedanceSurface.ClearAll();
             };
+
+            // 🔥 Render loop
+            Application.Idle += RenderLoop;
         }
 
-        // 🔥 PURE UI METHODS
-
+        // 🔥 REAL-TIME GRAPH (NO DELAY)
         private void OnSample(Sample s)
         {
-            if (InvokeRequired)
-            {
-                BeginInvoke(() => OnSample(s));
-                return;
-            }
-
             graphSurface.PushSample(s);
-            graphSurface.Invalidate();
         }
 
+        // 🔥 BUCKET-BASED IMPEDANCE
         private void OnBucket(Sample[] b, int c)
         {
             if (InvokeRequired)
@@ -83,7 +80,41 @@ namespace winform2
             }
 
             impedanceSurface.SetBucket(b, c);
-            impedanceSurface.Invalidate();
+        }
+
+        // 🔥 60 FPS RENDER LOOP
+        private void RenderLoop(object sender, EventArgs e)
+        {
+            while (IsAppIdle())
+            {
+                if (renderTimer.ElapsedMilliseconds < TargetFrameMs)
+                    continue;
+
+                renderTimer.Restart();
+
+                graphSurface.Invalidate();
+                impedanceSurface.Invalidate();
+            }
+        }
+
+        // 🔧 Win32 idle check
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativeMessage
+        {
+            public IntPtr handle;
+            public uint msg;
+            public IntPtr wParam;
+            public IntPtr lParam;
+            public uint time;
+            public Point p;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool PeekMessage(out NativeMessage lpMsg, IntPtr hWnd, uint a, uint b, uint c);
+
+        private bool IsAppIdle()
+        {
+            return !PeekMessage(out _, IntPtr.Zero, 0, 0, 0);
         }
     }
 }
