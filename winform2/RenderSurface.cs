@@ -8,7 +8,8 @@ namespace winform2
     public class RenderSurface : Control
     {
         private const int BufferSize = 1000;
-
+        private Sample[] liveBuffer = new Sample[40];
+        private int liveCount = 0;
         private readonly Sample[] buffer = new Sample[BufferSize];
         private int head = 0;
         private int count = 0;
@@ -36,12 +37,19 @@ namespace winform2
 
             if (count < BufferSize)
                 count++;
+
+            // 🔥 ADD LIVE IMPEDANCE PREVIEW
+            liveBuffer[liveCount % liveBuffer.Length] = s;
+            liveCount++;
         }
 
         public void SetBucket(Sample[] bucket, int count)
         {
             currentBucket = bucket;
             bucketCount = count;
+
+            // 🔥 RESET LIVE (new cycle)
+            liveCount = 0;
         }
 
         public void ClearAll()
@@ -99,6 +107,19 @@ namespace winform2
                 PointF p2 = new(cx + s2.X, cy - s2.Y);
 
                 g.DrawLine(Pens.Lime, p1, p2);
+            }
+            // 🔥 LIVE PREVIEW (LOW LATENCY)
+            int points = Math.Min(liveCount, liveBuffer.Length);
+
+            for (int i = 1; i < points; i++)
+            {
+                var s1 = liveBuffer[(i - 1) % liveBuffer.Length];
+                var s2 = liveBuffer[i % liveBuffer.Length];
+
+                PointF p1 = new(cx + s1.X, cy - s1.Y);
+                PointF p2 = new(cx + s2.X, cy - s2.Y);
+
+                g.DrawLine(Pens.Yellow, p1, p2); // 🔥 live (yellow)
             }
         }
 

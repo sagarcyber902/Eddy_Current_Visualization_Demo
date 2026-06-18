@@ -1,57 +1,57 @@
-﻿using System.Diagnostics;
-using winform2.Model;
+﻿using winform2.Model;
 
 namespace winform2.Core
 {
     public class BucketProcessor
     {
-        private const int Size = 40;
-      
+        private const int Size = 40; // 🔥 your fixed bucket size
 
         private readonly Sample[] bucket1 = new Sample[Size];
         private readonly Sample[] bucket2 = new Sample[Size];
 
-        private bool fillingB1 = true;
         private int index = 0;
+        private bool fillingB1 = true;
 
-        private readonly Stopwatch sw = Stopwatch.StartNew();
-
+        /// <summary>
+        /// Adds sample to current bucket.
+        /// When bucket is full → returns ready buffer.
+        /// </summary>
         public bool Add(Sample s, out Sample[] ready, out int count)
         {
-            ready = null;
-            count = 0;
+            // 🔥 Select active buffer
+            var current = fillingB1 ? bucket1 : bucket2;
 
-            if (fillingB1)
-                bucket1[index] = s;
-            else
-                bucket2[index] = s;
+            // 🔥 Fill sample
+            current[index++] = s;
 
-            index++;
-
-            // FULL BUCKET
+            // 🔥 Check if bucket full
             if (index >= Size)
             {
-                ready = fillingB1 ? bucket1 : bucket2;
+                // ✅ Current bucket ready
+                ready = current;
                 count = Size;
 
-                Swap();
+                // 🔥 IMMEDIATE SWITCH (core of ping-pong)
+                fillingB1 = !fillingB1;
+
+                // 🔥 Reset index for next buffer
+                index = 0;
+
                 return true;
             }
+
+            ready = null;
+            count = 0;
             return false;
         }
 
-        private void Swap()
-        {
-            fillingB1 = !fillingB1;
-            index = 0;
-            sw.Restart();
-        }
-
+        /// <summary>
+        /// Optional: Reset processor
+        /// </summary>
         public void Reset()
         {
             index = 0;
             fillingB1 = true;
-            sw.Restart();
         }
     }
 }
