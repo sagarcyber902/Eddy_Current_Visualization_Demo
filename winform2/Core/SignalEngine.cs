@@ -8,16 +8,14 @@ namespace winform2.Core
 {
     public class SignalEngine
     {
-        public event Action<Sample> OnSample;
+       
         public event Action<Sample[], int> OnBucket;
 
         private SignalGenerator generator;
         private readonly BucketProcessor bucket = new();
 
-        private const double SampleRate = 200; // Hz
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        private const double SampleRate = 1000; // Hz
         public SignalEngine(double[] inputData)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         {
             generator = new SignalGenerator(inputData);
         }
@@ -71,13 +69,13 @@ namespace winform2.Core
 
                     var sample = generator.Generate();
 
-                    OnSample?.Invoke(sample);
 
-                    if (bucket.Add(sample, out var ready, out int count))
+
+                    bucket.Add(sample);
+
+                    if (bucket.TryGetReady(out var ready))
                     {
-#pragma warning disable CS8604 // Possible null reference argument.
-                        OnBucket?.Invoke(ready, count);
-#pragma warning restore CS8604 // Possible null reference argument.
+                        OnBucket?.Invoke(ready, 20);
                     }
                 }
                 else
@@ -95,7 +93,7 @@ namespace winform2.Core
 
         public void Reset()
         {
-            bucket.Reset();
+            //bucket.Reset();
             generator.Reset();
         }
     }

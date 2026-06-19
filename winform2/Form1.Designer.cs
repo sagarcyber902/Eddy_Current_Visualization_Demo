@@ -45,7 +45,7 @@ namespace winform2
             Controls.Add(topPanel);
 
             ClientSize = new Size(1250, 420);
-            Text = "Dual View (Bucket Mode)";
+            Text = "Eddy Current";
         }
     }
 }

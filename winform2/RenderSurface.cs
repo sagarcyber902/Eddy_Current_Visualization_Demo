@@ -8,7 +8,7 @@ namespace winform2
 {
     public class RenderSurface : Control
     {
-        private const int BufferSize = 1000;
+        private const int BufferSize = 500;
 
         private readonly Sample[] buffer = new Sample[BufferSize];
         private int head = 0;
