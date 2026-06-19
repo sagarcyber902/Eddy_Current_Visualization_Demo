@@ -4,7 +4,7 @@ namespace winform2.Core
 {
     public class BucketProcessor
     {
-        private const int Size = 40; // 🔥 your fixed bucket size
+        private const int Size = 20; // 🔥 your fixed bucket size
 
         private readonly Sample[] bucket1 = new Sample[Size];
         private readonly Sample[] bucket2 = new Sample[Size];
@@ -16,7 +16,7 @@ namespace winform2.Core
         /// Adds sample to current bucket.
         /// When bucket is full → returns ready buffer.
         /// </summary>
-        public bool Add(Sample s, out Sample[] ready, out int count)
+        public bool Add(Sample s, out Sample[]? ready, out int count)
         {
             // 🔥 Select active buffer
             var current = fillingB1 ? bucket1 : bucket2;

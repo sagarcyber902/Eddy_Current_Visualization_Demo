@@ -1,47 +1,54 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using winform2.Model;
+﻿using winform2.Model;
 
-namespace winform2.Core
+public class SignalGenerator
 {
-    public class SignalGenerator
+    private double[] data;
+    private int index = 0;
+
+    public SignalGenerator(double[] input)
     {
-        private readonly Random rand = new();
-        private float currentX, currentY;
+        data = input;
+    }
 
-        public Sample Generate()
+    // ✅ Check if more data is available
+    public bool HasMoreData
+    {
+        get
         {
-            int roll = rand.Next(1000);
-
-            if (roll < 999)
-            {
-                currentX += (float)(rand.NextDouble() * 4 - 2);
-                currentY += (float)(rand.NextDouble() * 4 - 2);
-
-                currentX *= 0.95f;
-                currentY *= 0.95f;
-            }
-            else
-            {
-                float angle = (float)(rand.NextDouble() * Math.PI * 2);
-                float mag = (float)(rand.NextDouble() * 120 + 60);
-
-                currentX += MathF.Cos(angle) * mag;
-                currentY += MathF.Sin(angle) * mag;
-            }
-
-            currentX = Math.Clamp(currentX, -200, 200);
-            currentY = Math.Clamp(currentY, -200, 200);
-
-            double z = Math.Sqrt(currentX * currentX + currentY * currentY);
-
-            return new Sample { X = currentX, Y = currentY, Z = z };
+            return data != null && index < data.Length - 1;
         }
+    }
 
-        public void Reset()
+    public Sample Generate()
+    {
+        // ❌ No data
+        if (data == null || data.Length < 2)
+            return default;
+
+        // ❌ Safety check (important)
+        if (index >= data.Length - 1)
+            return default;
+
+        // 🔥 Read X,Y
+
+
+        float x = (float)data[index];
+        float y = (float)data[index + 1] ;
+
+        index += 2;
+
+        double z = Math.Sqrt(x * x + y * y);
+
+        return new Sample
         {
-            currentX = currentY = 0;
-        }
+            X = x,
+            Y = y,
+            Z = z
+        };
+    }
+
+    public void Reset()
+    {
+        index = 0;
     }
 }

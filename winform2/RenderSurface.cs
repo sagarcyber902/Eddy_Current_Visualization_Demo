@@ -2,23 +2,25 @@
 using System.Drawing;
 using System.Windows.Forms;
 using winform2.Model;
+using System.ComponentModel;
 
 namespace winform2
 {
     public class RenderSurface : Control
     {
         private const int BufferSize = 1000;
-        private Sample[] liveBuffer = new Sample[40];
-        private int liveCount = 0;
+
         private readonly Sample[] buffer = new Sample[BufferSize];
         private int head = 0;
         private int count = 0;
 
-        [System.ComponentModel.Browsable(false)]
-        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        private Sample[] liveBuffer = new Sample[40];
+        private int liveCount = 0;
+
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool IsImpedance { get; set; }
 
-        private Sample[] currentBucket = null;
+        private Sample[]? currentBucket = null;
         private int bucketCount = 0;
 
         public RenderSurface()
@@ -38,7 +40,6 @@ namespace winform2
             if (count < BufferSize)
                 count++;
 
-            // 🔥 ADD LIVE IMPEDANCE PREVIEW
             liveBuffer[liveCount % liveBuffer.Length] = s;
             liveCount++;
         }
@@ -48,7 +49,6 @@ namespace winform2
             currentBucket = bucket;
             bucketCount = count;
 
-            // 🔥 RESET LIVE (new cycle)
             liveCount = 0;
         }
 
@@ -72,6 +72,9 @@ namespace winform2
                 DrawGraph(g);
         }
 
+        // ============================
+        // 🔥 IMPEDANCE PLANE
+        // ============================
         private void DrawImpedance(Graphics g)
         {
             float cx = Width / 2f;
@@ -80,49 +83,54 @@ namespace winform2
             using var axisPen = new Pen(Color.Gray, 1);
             using var circlePen = new Pen(Color.Green, 1.5f);
 
-            // ✅ Axis
+            // Axis
             g.DrawLine(axisPen, 0, cy, Width, cy);
             g.DrawLine(axisPen, cx, 0, cx, Height);
 
-            // ✅ Circles (restored)
-            // 🔥 Big circle
-            float r1 = 100f;
-            g.DrawEllipse(circlePen, cx - r1, cy - r1, 2 * r1, 2 * r1);
+            // Circles
+            g.DrawEllipse(circlePen, cx - 100, cy - 100, 200, 200);
+            g.DrawEllipse(circlePen, cx - 20, cy - 20, 40, 40);
 
-            // 🔥 Small circle (reduced radius)
-            float r2 = 20f;
-            g.DrawEllipse(circlePen, cx - r2, cy - r2, 2 * r2, 2 * r2);
-
-            // ✅ No data yet
             if (currentBucket == null || bucketCount < 2)
                 return;
 
-            // ✅ Draw ONLY current bucket
+            // 🔥 Bucket drawing
             for (int i = 1; i < bucketCount; i++)
             {
-                var s1 = currentBucket[i - 1];
-                var s2 = currentBucket[i];
-
-                PointF p1 = new(cx + s1.X, cy - s1.Y);
-                PointF p2 = new(cx + s2.X, cy - s2.Y);
+                var p1 = MapToScreen(currentBucket[i - 1], cx, cy);
+                var p2 = MapToScreen(currentBucket[i], cx, cy);
 
                 g.DrawLine(Pens.Lime, p1, p2);
             }
-            // 🔥 LIVE PREVIEW (LOW LATENCY)
+
+            // 🔥 Live preview
             int points = Math.Min(liveCount, liveBuffer.Length);
 
             for (int i = 1; i < points; i++)
             {
-                var s1 = liveBuffer[(i - 1) % liveBuffer.Length];
-                var s2 = liveBuffer[i % liveBuffer.Length];
+                var p1 = MapToScreen(liveBuffer[(i - 1) % liveBuffer.Length], cx, cy);
+                var p2 = MapToScreen(liveBuffer[i % liveBuffer.Length], cx, cy);
 
-                PointF p1 = new(cx + s1.X, cy - s1.Y);
-                PointF p2 = new(cx + s2.X, cy - s2.Y);
-
-                g.DrawLine(Pens.Yellow, p1, p2); // 🔥 live (yellow)
+                g.DrawLine(Pens.Yellow, p1, p2);
             }
         }
 
+        // 🔥 CLIP TO CONTROL
+        private PointF MapToScreen(Sample s, float cx, float cy)
+        {
+            float x = cx + s.X;   // ✅ NO scaling
+            float y = cy - s.Y;   // ✅ NO scaling
+
+            // optional clipping (safe)
+            x = Math.Max(0, Math.Min(Width, x));
+            y = Math.Max(0, Math.Min(Height, y));
+
+            return new PointF(x, y);
+        }
+
+        // ============================
+        // 🔥 GRAPH WITH SCALE
+        // ============================
         private void DrawGraph(Graphics g)
         {
             float left = 40f;
@@ -131,15 +139,16 @@ namespace winform2
             float top = 10f;
 
             using var axisPen = new Pen(Color.Gray, 1);
+            using var gridPen = new Pen(Color.FromArgb(40, 255, 255, 255));
 
+            // Axis
             g.DrawLine(axisPen, left, bottom, right, bottom);
             g.DrawLine(axisPen, left, bottom, left, top);
 
-            using var gridPen = new Pen(Color.FromArgb(40, 255, 255, 255));
-
-            for (int i = 1; i <= 4; i++)
+            // 🔥 Simple grid (NO scaling math)
+            for (int i = 0; i < 10; i++)
             {
-                float y = bottom - i * (bottom - top) / 5;
+                float y = bottom - i * 20; // fixed spacing
                 g.DrawLine(gridPen, left, y, right, y);
             }
 
@@ -154,7 +163,13 @@ namespace winform2
                 var s = buffer[idx];
 
                 float px = left + i * step;
+
+                // ✅ RAW VALUE (NO scaling)
                 float py = bottom - (float)s.Z;
+
+                // optional clipping (safe)
+                if (py < top) py = top;
+                if (py > bottom) py = bottom;
 
                 var cur = new PointF(px, py);
 
@@ -164,6 +179,5 @@ namespace winform2
                 prev = cur;
             }
         }
-
     }
 }

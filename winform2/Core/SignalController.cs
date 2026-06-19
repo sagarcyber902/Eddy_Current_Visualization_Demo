@@ -4,42 +4,39 @@ namespace winform2.Core
 {
     public class SignalController
     {
-        private SignalEngine engine = new();
+        private SignalEngine? engine;
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public event Action<Sample> OnSample;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public event Action<Sample[], int> OnBucket;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-        public SignalController()
+        public void Start(double[] inputData)
         {
-            engine.OnSample += s => OnSample?.Invoke(s);
-            engine.OnBucket += (b, c) => OnBucket?.Invoke(b, c);    
-        }
+            if (engine != null)
+                engine.Stop();
 
-        public void Start()
-        {
-            // 🔥 stop old engine completely
-            engine.Stop();
+            engine = new SignalEngine(inputData);
 
-            // 🔥 create fresh engine (NO OLD DATA)
-            engine = new SignalEngine();
-
-            // 🔥 reattach events
             engine.OnSample += s => OnSample?.Invoke(s);
             engine.OnBucket += (b, c) => OnBucket?.Invoke(b, c);
 
-            // 🔥 start clean
             engine.IsRunning = true;
             engine.Start();
         }
 
         public void Pause()
         {
-            engine.IsRunning = false;
+            if (engine != null)
+                engine.IsRunning = false;
         }
 
         public void Clear()
         {
-            engine.Reset();
+            if (engine != null)
+                engine.Reset();
         }
     }
 }

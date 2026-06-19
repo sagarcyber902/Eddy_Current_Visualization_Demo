@@ -11,11 +11,16 @@ namespace winform2.Core
         public event Action<Sample> OnSample;
         public event Action<Sample[], int> OnBucket;
 
-        private readonly SignalGenerator generator = new();
+        private SignalGenerator generator;
         private readonly BucketProcessor bucket = new();
 
-        private const double SampleRate = 1000; // Hz
-        
+        private const double SampleRate = 200; // Hz
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public SignalEngine(double[] inputData)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        {
+            generator = new SignalGenerator(inputData);
+        }
 
         public bool IsRunning { get; set; }
 
@@ -56,20 +61,27 @@ namespace winform2.Core
                 {
                     nextTick += (long)ticksPerSample;
 
-                    // 🔥 Generate sample
+                    // 🔥 STOP when data finished
+                    if (!generator.HasMoreData)
+                    {
+                        running = false;
+                        IsRunning = false;
+                        return;
+                    }
+
                     var sample = generator.Generate();
 
                     OnSample?.Invoke(sample);
 
-                    // 🔥 Bucket logic
                     if (bucket.Add(sample, out var ready, out int count))
                     {
+#pragma warning disable CS8604 // Possible null reference argument.
                         OnBucket?.Invoke(ready, count);
+#pragma warning restore CS8604 // Possible null reference argument.
                     }
                 }
                 else
                 {
-                    // 🔥 Prevent CPU 100%
                     Thread.SpinWait(20);
                 }
             }
