@@ -36,7 +36,22 @@ namespace winform2.Core
                 hasReady = true;
             }
         }
+        public bool FlushPartial(out Sample[] buffer, out int count)
+        {
+            if (index > 0)
+            {
+                buffer = filling;   // current filling buffer
+                count = index;      // actual partial size
 
+                index = 0;          // reset
+
+                return true;
+            }
+
+            buffer = null;
+            count = 0;
+            return false;
+        }
         public bool TryGetReady(out Sample[]? buffer)
         {
             if (hasReady)
