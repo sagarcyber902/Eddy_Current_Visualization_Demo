@@ -1,29 +1,28 @@
-﻿using System;
-using System.Diagnostics;
-using System.Text;
-using System.Threading;
+﻿using System.Diagnostics;
 using winform2.Model;
+
+
 
 namespace winform2.Core
 {
     public class SignalEngine
     {
-       
         public event Action<Sample[], int> OnBucket;
 
-        private SignalGenerator generator;
+        private readonly SignalGenerator generator;
         private readonly BucketProcessor bucket = new();
 
-        private const double SampleRate = 1000; // Hz
-        public SignalEngine(double[] inputData)
-        {
-            generator = new SignalGenerator(inputData);
-        }
+        private const double SampleRate = 1000;
 
         public bool IsRunning { get; set; }
 
         private Thread worker;
         private bool running;
+
+        public SignalEngine(double[] inputData)
+        {
+            generator = new SignalGenerator(inputData);
+        }
 
         public void Start()
         {
@@ -41,7 +40,6 @@ namespace winform2.Core
         private void Run()
         {
             var sw = Stopwatch.StartNew();
-
             double ticksPerSample = Stopwatch.Frequency / SampleRate;
             long nextTick = sw.ElapsedTicks;
 
@@ -53,34 +51,29 @@ namespace winform2.Core
                     continue;
                 }
 
-                long now = sw.ElapsedTicks;
-
-                if (now >= nextTick)
+                if (sw.ElapsedTicks >= nextTick)
                 {
                     nextTick += (long)ticksPerSample;
 
-                    // 🔥 STOP when data finished
                     if (!generator.HasMoreData)
                     {
-                        running = false;
-                        IsRunning = false;
+                        // ✅ flush remaining partial bucket
+                        if (bucket.TryGetReady(out var last))
+                        {
+                            OnBucket?.Invoke(last, last.Length);
+                        }
+
+                        running = false;   // 🔥 STOP THREAD
                         return;
                     }
 
                     var sample = generator.Generate();
-
-
-
                     bucket.Add(sample);
 
                     if (bucket.TryGetReady(out var ready))
                     {
-                        OnBucket?.Invoke(ready, 20);
+                        OnBucket?.Invoke(ready, ready.Length);
                     }
-                }
-                else
-                {
-                    Thread.SpinWait(20);
                 }
             }
         }
@@ -93,7 +86,6 @@ namespace winform2.Core
 
         public void Reset()
         {
-            //bucket.Reset();
             generator.Reset();
         }
     }

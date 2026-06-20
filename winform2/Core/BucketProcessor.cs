@@ -1,5 +1,6 @@
 ﻿using winform2.Model;
 
+
 namespace winform2.Core
 {
     public class BucketProcessor
@@ -27,14 +28,11 @@ namespace winform2.Core
 
             if (index >= Size)
             {
-                // 🔥 SWAP buffers
                 var temp = filling;
                 filling = ready;
                 ready = temp;
 
                 index = 0;
-
-                // 🔥 mark ready
                 hasReady = true;
             }
         }

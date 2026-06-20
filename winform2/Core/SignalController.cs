@@ -4,34 +4,23 @@ namespace winform2.Core
 {
     public class SignalController
     {
-        private SignalEngine? engine;
-
+        private SignalEngine engine;
 
         public event Action<Sample[], int> OnBucket;
 
-        public void Start(double[] inputData)
+        public void Start(double[] data)
         {
-            if (engine != null)
-                engine.Stop();
+            engine?.Stop();
 
-            engine = new SignalEngine(inputData);
-
+            engine = new SignalEngine(data);
             engine.OnBucket += (b, c) => OnBucket?.Invoke(b, c);
 
             engine.IsRunning = true;
             engine.Start();
         }
 
-        public void Pause()
-        {
-            if (engine != null)
-                engine.IsRunning = false;
-        }
+        public void Pause() => engine.IsRunning = false;
 
-        public void Clear()
-        {
-            if (engine != null)
-                engine.Reset();
-        }
+        public void Clear() => engine.Reset();
     }
 }
